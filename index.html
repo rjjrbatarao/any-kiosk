@@ -1,0 +1,76 @@
+<HTML>
+<HEAD>
+<STYLE>
+:root {
+  color-scheme: dark;
+}
+</STYLE>
+<LINK rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
+<META charset="UTF-8">
+<SCRIPT>
+
+const expectedProductName = "XCoin USB Device";
+
+const filters = [
+  { vendorId: 61525, productId: 49159} // Nintendo Co., Ltd Joy-Con Right
+];
+let dev;
+
+async function reqConnect(){
+
+// Prompt user to select a device
+    const [device] = await navigator.hid.requestDevice({ filters });
+	if (device) {
+	  // Wait for the HID connection to open
+	  await device.open();
+	  console.log("Opened device: " + device.productName);
+	  dev = device;
+	  // Send an output report (e.g., to make the device rumble or turn on an LED)
+	}
+}
+
+      let command = [
+        // identical option except 1st index must be removed hence shifted
+        0x17, 0x00, 0x0a, 0x00, 0x55, 0x01, 0x0a, 0x00, 0x01, 0x00, 0x07,
+        0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0,
+      ];
+
+async function enableCoin(){
+	  command[1] = 0x01;
+	  const uint8Array = new Uint8Array(255);// must be 255
+	  uint8Array.set(command);
+	  const reportId = 0xaa; // Example report ID for rumble
+	  const rumbleData = new Uint8Array(uint8Array); // Device-specific data
+	  await dev.sendFeatureReport(reportId, rumbleData);
+	  console.log("Write success");
+}
+
+async function disableCoin(){
+	  command[1] = 0x00;
+	  const uint8Array = new Uint8Array(255);// must be 255
+	  uint8Array.set(command);
+	  const reportId = 0xaa; // Example report ID for rumble
+	  const rumbleData = new Uint8Array(uint8Array); // Device-specific data
+	  await dev.sendFeatureReport(reportId, rumbleData);
+	  console.log("Write success");
+}
+
+
+async function receiveData(){
+	  const reportId = 0xab; // Example report ID for rumble
+	  const dataView = await dev.receiveFeatureReport(reportId);
+	  const uint8Array = new Uint8Array(dataView.buffer);
+	  console.log("Report ID:", dataView.getUint8(0));
+      console.log("Array:", uint8Array);
+}
+
+</SCRIPT>
+<BODY >
+<INPUT TYPE=SUBMIT onClick="reqConnect()" VALUE="Open Device" ID=connectButton/>
+<INPUT TYPE=SUBMIT onClick="enableCoin()" VALUE="ENABLE" />
+<INPUT TYPE=SUBMIT onClick="disableCoin()" VALUE="DISABLE" />
+<INPUT TYPE=SUBMIT onClick="receiveData()"  VALUE="READ"/>
+</BODY>
+</HTML>
